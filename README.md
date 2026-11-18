@@ -84,7 +84,7 @@ cd url-shortner
 npm install
 ```
 
-This installs Express, Mongoose, EJS, `jsonwebtoken`, `cookie-parser`, `dotenv`, `shortid`, and related packages.
+This installs Express, Mongoose, EJS, `cookie-parser`, `dotenv`, `shortid`, and related packages. Auth tokens are signed with Node’s built-in `crypto` module.
 
 ### 3. Create a `.env` file
 

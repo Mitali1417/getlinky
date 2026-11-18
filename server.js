@@ -1,6 +1,3 @@
-const { Buffer } = require("buffer");
-globalThis.Buffer = globalThis.Buffer || Buffer;
-
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");

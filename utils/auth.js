@@ -1,14 +1,5 @@
-// const sessionIdToUserMap = new Map();
-
-// const setUser = (id, user) => {
-//   return sessionIdToUserMap.set(id, user);
-// };
-
-// const getUser = (id) => {
-//   return sessionIdToUserMap.get(id);
-// };
-
-// module.exports = { setUser, getUser };
+const { Buffer } = require("buffer");
+globalThis.Buffer = globalThis.Buffer || Buffer;
 
 const jwt = require("jsonwebtoken");
 const secretKey = process.env.JWT_SECRET_KEY;
@@ -33,3 +24,4 @@ const getUser = (token) => {
 };
 
 module.exports = { setUser, getUser };
+module.exports.default = module.exports;

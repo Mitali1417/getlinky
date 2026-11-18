@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const URL = require("../models/url");
-const { restrictToLoggedInUserOnly } = require("../middlewares/auth");
+
+let load = require("../utils/cjs");
+if (typeof load !== "function") load = load.default;
+
+const URL = load(require("../models/url"));
+const { restrictToLoggedInUserOnly } = load(require("../middlewares/auth"));
 
 router.get("/", restrictToLoggedInUserOnly, async (req, res) => {
   if (!req.user) return res.redirect("/login");
@@ -18,3 +22,4 @@ router.get("/login", async (req, res) => {
 });
 
 module.exports = router;
+module.exports.default = router;

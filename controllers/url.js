@@ -1,5 +1,8 @@
-const shortid = require("shortid");
-const URL = require("../models/url");
+let load = require("../utils/cjs");
+if (typeof load !== "function") load = load.default;
+
+const shortid = load(require("shortid"));
+const URL = load(require("../models/url"));
 
 const handleGenerateURL = async (req, res) => {
   const body = req.body;
@@ -12,7 +15,6 @@ const handleGenerateURL = async (req, res) => {
       visitHistory: [],
       createdBy: req.user._id,
     });
-    // return res.status(201).json({ id: shortId });
     return res.render("home", { id: shortId });
   } catch (error) {
     console.error(error);
@@ -48,3 +50,4 @@ const handleGetURL = async (req, res) => {
 };
 
 module.exports = { handleGenerateURL, handleGetURL };
+module.exports.default = module.exports;

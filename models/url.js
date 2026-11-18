@@ -26,6 +26,7 @@ const UrlSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const URL = mongoose.model("url", UrlSchema);
+const URL = mongoose.models.url || mongoose.model("url", UrlSchema);
 
 module.exports = URL;
+module.exports.default = URL;

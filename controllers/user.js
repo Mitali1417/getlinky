@@ -1,6 +1,8 @@
-// const { v4: uuidv4 } = require("uuid");
-const USER = require("../models/user");
-const { setUser } = require("../utils/auth");
+let load = require("../utils/cjs");
+if (typeof load !== "function") load = load.default;
+
+const USER = load(require("../models/user"));
+const { setUser } = load(require("../utils/auth"));
 
 const handleSignup = async (req, res) => {
   const body = req.body;
@@ -25,12 +27,13 @@ const handleLogin = async (req, res) => {
       error: "Invalid username or password",
     });
   }
-  // const sessionId = uuidv4();
-  // setUser(sessionId, user);
-  // res.cookie("uid", sessionId);
 
   const token = setUser(user);
-  res.cookie("uid", token);
+  res.cookie("uid", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.VERCEL === "1",
+  });
   return res.redirect("/");
 };
 
@@ -40,3 +43,4 @@ const handleLogout = async (req, res) => {
 };
 
 module.exports = { handleSignup, handleLogin, handleLogout };
+module.exports.default = module.exports;

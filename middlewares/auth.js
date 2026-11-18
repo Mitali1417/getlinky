@@ -1,4 +1,7 @@
-const { getUser } = require("../utils/auth");
+let load = require("../utils/cjs");
+if (typeof load !== "function") load = load.default;
+
+const { getUser } = load(require("../utils/auth"));
 
 const restrictToLoggedInUserOnly = async (req, res, next) => {
   const userId = req.cookies?.uid;
@@ -21,3 +24,4 @@ const checkAuth = (req, res, next) => {
 };
 
 module.exports = { restrictToLoggedInUserOnly, checkAuth };
+module.exports.default = module.exports;

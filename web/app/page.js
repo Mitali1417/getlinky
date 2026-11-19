@@ -19,14 +19,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toast } from "sonner";
 import { api, publicShortUrl } from "@/lib/api";
+import { toastError } from "@/lib/errors";
+import { logError } from "@/lib/logger";
 
 export default function HomePage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [urls, setUrls] = useState([]);
   const [generated, setGenerated] = useState("");
-  const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
   const loadUrls = useCallback(async () => {
@@ -41,7 +43,11 @@ export default function HomePage() {
         await api("/user/me");
         await loadUrls();
         if (!cancelled) setReady(true);
-      } catch {
+      } catch (error) {
+        logError("home auth", error);
+        if (error.status !== 401) {
+          toastError(error, "Could not load your links");
+        }
         if (!cancelled) router.replace("/login");
       }
     })();
@@ -52,7 +58,6 @@ export default function HomePage() {
 
   async function onGenerate(event) {
     event.preventDefault();
-    setError("");
     setPending(true);
     const form = new FormData(event.currentTarget);
     try {
@@ -63,16 +68,25 @@ export default function HomePage() {
       setGenerated(publicShortUrl(data.id, data.shortUrl));
       event.currentTarget.reset();
       await loadUrls();
-    } catch (err) {
-      setError(err.message);
+      toast.success("Short URL created");
+    } catch (error) {
+      logError("generate url", error);
+      toastError(error, "Could not generate a short URL");
     } finally {
       setPending(false);
     }
   }
 
   async function onLogout() {
-    await api("/user/logout", { method: "POST" });
-    router.replace("/login");
+    try {
+      await api("/user/logout", { method: "POST" });
+      toast.success("Logged out");
+      router.replace("/login");
+    } catch (error) {
+      logError("logout", error);
+      toastError(error, "Logout failed");
+      router.replace("/login");
+    }
   }
 
   function shortLink(url) {
@@ -133,7 +147,6 @@ export default function HomePage() {
               required
               className="h-11 border-neutral-700 bg-black text-emerald-400 placeholder:text-neutral-500"
             />
-            {error ? <p className="text-sm text-red-400">{error}</p> : null}
             <Button
               type="submit"
               disabled={pending}

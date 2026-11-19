@@ -19,14 +19,14 @@ const handleGenerateURL = async (req, res) => {
       redirectURL: body.url,
       visitHistory: [],
       createdBy: req.user._id,
-    });
+    }); 
     return res.status(201).json({
       id: shortId,
       shortUrl: toPublicUrl(shortId),
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ msg: "Error creating short URL" });
+    console.error("[generate-url]", error);
+    return res.status(500).json({ error: "Error creating short URL" });
   }
 };
 
@@ -44,7 +44,7 @@ const handleListURLs = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error(error);
+    console.error("[list-urls]", error);
     return res.status(500).json({ error: "Error fetching URLs" });
   }
 };
@@ -71,7 +71,7 @@ const handleGetURL = async (req, res) => {
       res.status(404).send("URL not found");
     }
   } catch (error) {
-    console.error(error);
+    console.error("[redirect-url]", error);
     res.status(500).send("Error fetching the URL");
   }
 };

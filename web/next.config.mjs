@@ -30,13 +30,16 @@ function stripSlash(url) {
 const frontendUrl = stripSlash(
   (isProduction
     ? process.env.PRODUCTION_FRONTEND_URL
-    : process.env.LOCAL_FRONTEND_URL) 
+    : process.env.LOCAL_FRONTEND_URL)
 );
 
 const apiUrl = stripSlash(
-  (isProduction
+  ((isProduction
     ? process.env.PRODUCTION_BASE_URL
-    : process.env.LOCAL_BASE_URL) 
+    : process.env.LOCAL_BASE_URL).replace(
+    "localhost",
+    "127.0.0.1"
+  )
 );
 
 let sameOrigin = false;

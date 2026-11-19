@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 import { AuthShell } from "@/components/auth-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "cn";
@@ -10,15 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
+import { toastError } from "@/lib/errors";
+import { logError } from "@/lib/logger";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event) {
     event.preventDefault();
-    setError("");
     setPending(true);
     const form = new FormData(event.currentTarget);
     try {
@@ -29,10 +30,12 @@ export default function LoginPage() {
           password: form.get("password"),
         }),
       });
+      toast.success("Logged in");
       router.push("/");
       router.refresh();
-    } catch (err) {
-      setError(err.message);
+    } catch (error) {
+      logError("login", error);
+      toastError(error, "Login failed");
     } finally {
       setPending(false);
     }
@@ -64,7 +67,6 @@ export default function LoginPage() {
             className="h-10 border-white/20 text-white placeholder:text-neutral-500"
           />
         </div>
-        {error ? <p className="text-sm text-red-400">{error}</p> : null}
         <Button
           type="submit"
           disabled={pending}

@@ -10,7 +10,7 @@ function getFrontendUrl() {
   const url = isProduction()
     ? process.env.PRODUCTION_FRONTEND_URL
     : process.env.LOCAL_FRONTEND_URL;
-  return stripSlash(urls);
+  return stripSlash(url);
 }
 
 function getBaseUrl() {

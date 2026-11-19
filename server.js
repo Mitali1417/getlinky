@@ -50,7 +50,7 @@ app.use(async (req, res, next) => {
     next();
   } catch (error) {
     console.error(error, "Error Occured");
-    res.status(500).send("Database unavailable");
+    res.status(500).json({ error: "Database unavailable" });
   }
 });
 
@@ -61,16 +61,22 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
-if (!process.env.VERCEL) {
+if (process.env.VERCEL !== "1") {
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    const mode = isProduction() ? "production" : "local";
+    console.log(`Server is listening at http://127.0.0.1:${PORT} (${mode})`);
+    console.log(`Frontend: ${frontendOrigin}`);
+    console.log(`Public short-link host: ${getBaseUrl()}`);
+  });
+
+  server.on("error", (error) => {
+    console.error(error);
+    process.exit(1);
+  });
+
   connectMongo()
     .then(() => {
       console.log("MongoDB Connected");
-      app.listen(PORT, () => {
-        const mode = isProduction() ? "production" : "local";
-        console.log(`Server is listening at http://localhost:${PORT} (${mode})`);
-        console.log(`Frontend: ${frontendOrigin}`);
-        console.log(`Public short-link host: ${getBaseUrl()}`);
-      });
     })
     .catch((error) => {
       console.log(error, "Error Occured");

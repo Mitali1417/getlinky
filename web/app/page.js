@@ -114,15 +114,17 @@ export default function HomePage() {
         </Button>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 lg:flex-row lg:items-start">
-        <section className="flex w-full flex-col justify-center lg:w-2/5 lg:py-16">
-          <h2 className="text-3xl font-semibold text-neutral-400">
-            Simplify URL Shortening{" "}
-            <span className="block bg-linear-to-r from-emerald-400 to-sky-400 bg-clip-text text-4xl font-bold text-transparent lowercase">
-              Effortlessly
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
+        <section className="flex w-full flex-col justify-center lg:py-16">
+          <h2 className="text-6xl font-bold text-neutral-400">
+            get
+            <span className="bg-linear-to-r from-emerald-400 to-sky-400 bg-clip-text font-semibold text-transparent lowercase">
+            linky
             </span>
           </h2>
-          <div className="mt-2 h-px w-full bg-emerald-400/80" />
+          <h2 className="text-2xl mt-6 font-semibold text-neutral-400">
+            Your short links, your way.
+          </h2>
 
           {generated ? (
             <p className="mt-4 break-all text-sm text-neutral-400">
@@ -139,25 +141,25 @@ export default function HomePage() {
             </p>
           ) : null}
 
-          <form className="mt-6 flex flex-col gap-4" onSubmit={onGenerate}>
+          <form className="mt-6 flex gap-4" onSubmit={onGenerate}>
             <Input
               name="url"
               type="text"
               placeholder="Paste the original link"
               required
-              className="h-11 border-neutral-700 bg-black text-emerald-400 placeholder:text-neutral-500"
+              className="h-11 w-full border-neutral-700 bg-black text-emerald-400 placeholder:text-neutral-500"
             />
             <Button
               type="submit"
               disabled={pending}
-              className="h-11 bg-linear-to-r from-emerald-400 to-sky-400 text-black hover:bg-white hover:text-neutral-700"
+              className="h-11 w-52 bg-linear-to-r from-emerald-400 to-sky-400 text-black hover:bg-white hover:text-neutral-700"
             >
               {pending ? "Generating..." : "Generate"}
             </Button>
           </form>
         </section>
 
-        <Card className="w-full bg-black/60 text-white ring-neutral-700 lg:w-3/5">
+        <Card className="w-full bg-black/60 text-white ring-neutral-700">
           <CardHeader>
             <CardTitle>Your links</CardTitle>
             <CardDescription className="text-neutral-400">

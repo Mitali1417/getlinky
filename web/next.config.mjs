@@ -36,7 +36,7 @@ const frontendUrl = stripSlash(
 const apiUrl = stripSlash(
   ((isProduction
     ? process.env.PRODUCTION_BASE_URL
-    : process.env.LOCAL_BASE_URL).replace(
+    : process.env.LOCAL_BASE_URL)).replace(
     "localhost",
     "127.0.0.1"
   )

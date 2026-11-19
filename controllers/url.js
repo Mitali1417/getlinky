@@ -3,6 +3,11 @@ if (typeof load !== "function") load = load.default;
 
 const shortid = load(require("shortid"));
 const URL = load(require("../models/url"));
+const { getBaseUrl } = load(require("../utils/config"));
+
+function toPublicUrl(shortId) {
+  return `${getBaseUrl()}/url/${shortId}`;
+}
 
 const handleGenerateURL = async (req, res) => {
   const body = req.body;
@@ -15,10 +20,32 @@ const handleGenerateURL = async (req, res) => {
       visitHistory: [],
       createdBy: req.user._id,
     });
-    return res.render("home", { id: shortId });
+    return res.status(201).json({
+      id: shortId,
+      shortUrl: toPublicUrl(shortId),
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ msg: "Error creating short URL" });
+  }
+};
+
+const handleListURLs = async (req, res) => {
+  try {
+    const urls = await URL.find({ createdBy: req.user._id }).sort({
+      createdAt: -1,
+    });
+    return res.json({
+      urls: urls.map((url) => ({
+        shortId: url.shortId,
+        redirectURL: url.redirectURL,
+        shortUrl: toPublicUrl(url.shortId),
+        clicks: url.visitHistory?.length || 0,
+      })),
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error fetching URLs" });
   }
 };
 
@@ -49,5 +76,5 @@ const handleGetURL = async (req, res) => {
   }
 };
 
-module.exports = { handleGenerateURL, handleGetURL };
+module.exports = { handleGenerateURL, handleGetURL, handleListURLs };
 module.exports.default = module.exports;

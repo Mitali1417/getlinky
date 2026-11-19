@@ -3,19 +3,33 @@ const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
 const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 let load = require("./utils/cjs");
 if (typeof load !== "function") load = load.default;
 
 const UrlRoute = load(require("./routes/url"));
-const staticRoute = load(require("./routes/staticRouter"));
 const UserRoute = load(require("./routes/user"));
 const auth = load(require("./middlewares/auth"));
-const { restrictToLoggedInUserOnly, checkAuth } = auth;
+const { getFrontendUrl, getBaseUrl, isProduction } = load(
+  require("./utils/config")
+);
+const { restrictToLoggedInUserOnly } = auth;
 
 const app = express();
 const PORT = process.env.PORT || 5005;
+const frontendOrigin = getFrontendUrl();
 
+if (isProduction()) {
+  app.set("trust proxy", 1);
+}
+
+app.use(
+  cors({
+    origin: frontendOrigin,
+    credentials: true,
+  })
+);
 app.use(express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 app.use(express.json());
@@ -40,19 +54,22 @@ app.use(async (req, res, next) => {
   }
 });
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
 app.use("/url", restrictToLoggedInUserOnly, UrlRoute);
 app.use("/user", UserRoute);
-app.use("/", checkAuth, staticRoute);
+
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true });
+});
 
 if (!process.env.VERCEL) {
   connectMongo()
     .then(() => {
       console.log("MongoDB Connected");
       app.listen(PORT, () => {
-        console.log(`Server is listening at http://localhost:${PORT}`);
+        const mode = isProduction() ? "production" : "local";
+        console.log(`Server is listening at http://localhost:${PORT} (${mode})`);
+        console.log(`Frontend: ${frontendOrigin}`);
+        console.log(`Public short-link host: ${getBaseUrl()}`);
       });
     })
     .catch((error) => {

@@ -6,18 +6,32 @@ function stripSlash(url) {
   return String(url || "").replace(/\/$/, "");
 }
 
+function vercelUrl() {
+  return process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "";
+}
+
+function getProductionUrl() {
+  return stripSlash(
+    process.env.PRODUCTION_URL ||
+      process.env.PRODUCTION_FRONTEND_URL ||
+      process.env.PRODUCTION_BASE_URL ||
+      process.env.API_URL ||
+      vercelUrl()
+  );
+}
+
 function getFrontendUrl() {
-  const url = isProduction()
-    ? process.env.PRODUCTION_FRONTEND_URL
-    : process.env.LOCAL_FRONTEND_URL;
-  return stripSlash(url);
+  if (isProduction()) {
+    return getProductionUrl();
+  }
+  return stripSlash(process.env.LOCAL_FRONTEND_URL || "http://localhost:3000");
 }
 
 function getBaseUrl() {
-  const url = isProduction()
-    ? process.env.PRODUCTION_BASE_URL
-    : process.env.LOCAL_BASE_URL;
-  return stripSlash(url);
+  if (isProduction()) {
+    return getProductionUrl();
+  }
+  return stripSlash(process.env.LOCAL_BASE_URL || "http://localhost:5005");
 }
 
 function getCookieOptions() {
@@ -25,7 +39,8 @@ function getCookieOptions() {
   const base = getBaseUrl();
   let crossSite = false;
   try {
-    crossSite = new URL(frontend).origin !== new URL(base).origin;
+    crossSite =
+      frontend && base && new URL(frontend).origin !== new URL(base).origin;
   } catch {
     crossSite = false;
   }
@@ -46,6 +61,7 @@ function getCookieOptions() {
 
 module.exports = {
   isProduction,
+  getProductionUrl,
   getFrontendUrl,
   getBaseUrl,
   getCookieOptions,

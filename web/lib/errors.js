@@ -1,13 +1,21 @@
 import { toast } from "sonner";
 
 const API_DOWN =
-  "Cannot reach the API. Restart with npm run dev and wait for port 5005.";
+  "Cannot reach the API. Check that Express is running and PRODUCTION_URL is set.";
+
+function isHtmlMessage(message) {
+  return typeof message === "string" && /<!DOCTYPE|<html/i.test(message);
+}
 
 export function getErrorMessage(error, fallback = "Something went wrong") {
   const status = error?.status;
   const message = error?.message;
 
-  if (status === 0 || status === 502 || status === 503 || status === 504) {
+  if (isHtmlMessage(message)) {
+    return API_DOWN;
+  }
+
+  if (status === 0 || status === 404 || status === 502 || status === 503 || status === 504) {
     return API_DOWN;
   }
 

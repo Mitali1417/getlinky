@@ -1,7 +1,7 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const express = require("express");
 const mongoose = require("mongoose");
-const path = require("path");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
@@ -30,7 +30,6 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

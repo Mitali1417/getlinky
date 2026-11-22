@@ -1,5 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "next build"
+  "buildCommand": "npm run build",
+  "rewrites": [
+    { "source": "/user", "destination": "/api" },
+    { "source": "/user/:path*", "destination": "/api" },
+    { "source": "/url", "destination": "/api" },
+    { "source": "/url/:path*", "destination": "/api" },
+    { "source": "/api/health", "destination": "/api" }
+  ],
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "{server.js,controllers/**,models/**,routes/**,utils/**,middlewares/**}"
+    }
+  }
 }

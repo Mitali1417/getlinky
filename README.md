@@ -26,7 +26,7 @@ Turns long links into short, shareable URLs. The home page is a public composer 
 | Guest | Composer is visible | Redirects to `/login` | Hidden |
 | Signed in | Same composer | Creates a short URL | Shown below |
 
-Locally the UI runs on **port 3000**. Next.js rewrites `/user` and `/url` to the Express API on **port 5005**. Short links look like `http://localhost:5005/url/<id>` (or your `LOCAL_BASE_URL` / `PRODUCTION_BASE_URL`).
+Locally the UI runs on **port 3000**. Next.js rewrites `/user` and `/url` to the Express API on **port 5005**. Short links look like `http://localhost:5005/url/<id>` (or your `LOCAL_BASE_URL`). In production, Next.js and Express share one origin (`PRODUCTION_URL`).
 
 ---
 
@@ -38,7 +38,7 @@ Locally the UI runs on **port 3000**. Next.js rewrites `/user` and `/url` to the
 | API | Express, JSON |
 | Frontend | Next.js (App Router), Tailwind CSS, shadcn/ui |
 | Database | MongoDB + Mongoose |
-| Auth | HMAC JWT (`utils/auth.js`) + `cookie-parser` |
+| Auth | HMAC JWT (`web/utils/auth.js`) + `cookie-parser` |
 | Short IDs | `shortid` |
 
 ---
@@ -47,18 +47,17 @@ Locally the UI runs on **port 3000**. Next.js rewrites `/user` and `/url` to the
 
 ```text
 url-shortner/
-├── api/                 # Vercel serverless entry (Express)
-├── controllers/         # Signup, login, logout, create/list/redirect URLs
-├── middlewares/         # JWT cookie auth
-├── models/              # Mongoose schemas for users and URLs
-├── routes/              # JSON API: /user, /url
-├── utils/
-│   ├── auth.js          # Sign and verify JWT
-│   └── config.js        # LOCAL_* vs PRODUCTION_* hosts and cookies
-├── web/                 # Next.js app (pages, shadcn, toasts)
-├── server.js            # Express API, MongoDB, port 5005
-├── .env.example         # Env template (copy to .env)
-└── package.json
+├── web/
+│   ├── api/index.js     # Vercel Express entry
+│   ├── server.js        # Express API (port 5005 locally)
+│   ├── controllers/     # Signup, login, logout, create/list/redirect URLs
+│   ├── middlewares/     # JWT cookie auth
+│   ├── models/          # Mongoose schemas for users and URLs
+│   ├── routes/          # JSON API: /user, /url
+│   ├── utils/           # JWT + PRODUCTION_URL / cookie config
+│   └── app/             # Next.js pages
+├── .env.example
+└── package.json         # Runs API + Next together locally
 ```
 
 ### Frontend routes (`web/`)
@@ -103,7 +102,7 @@ cd url-shortner
 
 ### 2. Install dependencies
 
-Root (API) and frontend:
+Root (runs both processes) and `web/` (Express + Next.js):
 
 ```bash
 npm install
@@ -121,8 +120,7 @@ MONGODB_URI=
 JWT_SECRET_KEY=
 LOCAL_FRONTEND_URL=http://localhost:3000
 LOCAL_BASE_URL=http://localhost:5005
-PRODUCTION_FRONTEND_URL=https://your-frontend.example.com
-PRODUCTION_BASE_URL=https://your-api.example.com
+PRODUCTION_URL=https://your-app.vercel.app
 ```
 
 | Variable | Purpose |
@@ -131,10 +129,9 @@ PRODUCTION_BASE_URL=https://your-api.example.com
 | `JWT_SECRET_KEY` | Secret used to sign and verify login tokens |
 | `LOCAL_FRONTEND_URL` | Next.js origin in development |
 | `LOCAL_BASE_URL` | Express origin used in short links locally |
-| `PRODUCTION_FRONTEND_URL` | Deployed Next.js origin |
-| `PRODUCTION_BASE_URL` | Deployed API / public short-link origin |
+| `PRODUCTION_URL` | Single deployed origin for the UI, API, and short links |
 
-`npm run dev` uses `LOCAL_*`. Production (`NODE_ENV=production` or Vercel) uses `PRODUCTION_*`. Cookies are `httpOnly`. They use `secure` and `SameSite=None` only when the UI and API are on different HTTPS origins; otherwise `SameSite=Lax`.
+`npm run dev` uses `LOCAL_*`. Production (`NODE_ENV=production` or Vercel) uses `PRODUCTION_URL`. Cookies are `httpOnly` and `SameSite=Lax` on that same origin.
 
 **Atlas example:**
 
@@ -185,14 +182,28 @@ Visit [http://localhost:3000](http://localhost:3000).
 | `npm run dev:api` | Express with `--watch` on port 5005 |
 | `npm run dev:web` | Next.js on port 3000 |
 | `npm run build:web` | Production build of `web/` |
-| `npm start` | Express only (`node server.js`) |
+| `npm start` | Express only (`web/server.js`) |
+
+---
+
+## Deploy on Vercel (one origin)
+
+Next.js and Express share `PRODUCTION_URL` (for example `https://getlinky.vercel.app`). `/user` and `/url` are rewritten to the Express function.
+
+1. Import the Git repo in Vercel.
+2. Set **Root Directory** to `web` (not the repo root).
+3. Framework: **Next.js**. Leave **Output Directory** empty (do not use `public`).
+4. Environment variables: `MONGODB_URI`, `JWT_SECRET_KEY`, `PRODUCTION_URL` (your Vercel URL, no trailing slash).
+5. Redeploy.
+
+Locally you still run two processes (`npm run dev`). Production is one Vercel app.
 
 ---
 
 ## Environment checklist
 
 - [ ] `npm install` in the root and in `web/`
-- [ ] `.env` has `MONGODB_URI`, `JWT_SECRET_KEY`, and the `LOCAL_*` / `PRODUCTION_*` URLs
+- [ ] `.env` has `MONGODB_URI`, `JWT_SECRET_KEY`, `LOCAL_*`, and `PRODUCTION_URL`
 - [ ] MongoDB is reachable
 - [ ] `npm run dev` shows the API listening on 5005 and Next.js ready on 3000
 - [ ] Browser opens `http://localhost:3000`
@@ -205,8 +216,7 @@ Visit [http://localhost:3000](http://localhost:3000).
 ## Notes
 
 - This is a practice project. Do not run it as a public production shortener without addressing the gaps below.
-- `uuid` remains in `package.json` from an older session-map approach; auth uses JWT in `utils/auth.js`.
-- Auth tokens are signed with Node’s built-in `crypto` module (HMAC-SHA256).
+- Auth tokens are signed with Node’s built-in `crypto` module (HMAC-SHA256) in `web/utils/auth.js`.
 
 ---
 
@@ -264,4 +274,4 @@ This app is a **learning project**. A production shortener (Bitly-style) would s
 6. Clicks as a separate append-only stream
 7. Rate limits
 8. JWT expiry
-9. Health checks plus `PRODUCTION_BASE_URL` / `PORT` from the environment
+9. Health checks plus `PRODUCTION_URL` / `PORT` from the environment

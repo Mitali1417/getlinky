@@ -2,7 +2,7 @@ import { logError } from "@/lib/logger";
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "";
 const API_DOWN =
-  "Cannot reach the API. Restart with npm run dev and wait for port 5005.";
+  "Cannot reach the API. Check that Express is running, or run npm run dev locally.";
 
 export function publicShortUrl(shortId, fallback) {
   if (fallback) return fallback;
@@ -44,11 +44,13 @@ export async function api(path, options = {}) {
     const data = await readBody(res);
     if (!res.ok) {
       const raw = data.error || data.msg || "";
+      const isHtml = typeof raw === "string" && /<!DOCTYPE|<html/i.test(raw);
       const isProxyFailure =
-        res.status >= 500 &&
-        (!raw ||
-          raw === "Request failed" ||
-          /ECONNREFUSED|Failed to proxy|Internal Server Error/i.test(raw));
+        isHtml ||
+        (res.status >= 500 &&
+          (!raw ||
+            raw === "Request failed" ||
+            /ECONNREFUSED|Failed to proxy|Internal Server Error/i.test(raw)));
       throw makeError(
         isProxyFailure ? API_DOWN : raw || "Request failed",
         res.status

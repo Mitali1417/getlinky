@@ -27,39 +27,42 @@ function stripSlash(url) {
   return String(url || "").replace(/\/$/, "");
 }
 
+function productionUrl() {
+  return stripSlash(
+    process.env.PRODUCTION_URL ||
+      process.env.PRODUCTION_FRONTEND_URL ||
+      process.env.PRODUCTION_BASE_URL ||
+      process.env.API_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
+  );
+}
+
 const frontendUrl = stripSlash(
-  (isProduction
-    ? process.env.PRODUCTION_FRONTEND_URL
-    : process.env.LOCAL_FRONTEND_URL)
+  isProduction
+    ? productionUrl()
+    : process.env.LOCAL_FRONTEND_URL || "http://localhost:3000"
 );
 
 const apiUrl = stripSlash(
-  (
-    (isProduction
-      ? process.env.PRODUCTION_BASE_URL
-      : process.env.LOCAL_BASE_URL) || "http://localhost:5005"
-  ).replace("localhost", "127.0.0.1")
+  isProduction
+    ? productionUrl()
+    : (process.env.LOCAL_BASE_URL || "http://localhost:5005").replace(
+        "localhost",
+        "127.0.0.1"
+      )
 );
-
-let sameOrigin = false;
-try {
-  sameOrigin = new URL(frontendUrl).origin === new URL(apiUrl).origin;
-} catch {
-  sameOrigin = false;
-}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   env: {
-    NEXT_PUBLIC_BASE_URL: apiUrl,
+    NEXT_PUBLIC_BASE_URL: frontendUrl || apiUrl,
     NEXT_PUBLIC_FRONTEND_URL: frontendUrl,
-    NEXT_PUBLIC_API_URL:
-      !sameOrigin && isProduction ? apiUrl : "",
+    NEXT_PUBLIC_API_URL: "",
   },
   async rewrites() {
-    if (sameOrigin) return [];
+    if (isProduction) return [];
     return [
       { source: "/user", destination: `${apiUrl}/user` },
       { source: "/user/:path*", destination: `${apiUrl}/user/:path*` },

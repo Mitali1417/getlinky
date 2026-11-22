@@ -34,12 +34,11 @@ const frontendUrl = stripSlash(
 );
 
 const apiUrl = stripSlash(
-  ((isProduction
-    ? process.env.PRODUCTION_BASE_URL
-    : process.env.LOCAL_BASE_URL)).replace(
-    "localhost",
-    "127.0.0.1"
-  )
+  (
+    (isProduction
+      ? process.env.PRODUCTION_BASE_URL
+      : process.env.LOCAL_BASE_URL) || "http://localhost:5005"
+  ).replace("localhost", "127.0.0.1")
 );
 
 let sameOrigin = false;

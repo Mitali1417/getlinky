@@ -47,17 +47,17 @@ Locally the UI runs on **port 3000**. Next.js rewrites `/user` and `/url` to the
 
 ```text
 url-shortner/
-├── web/
-│   ├── api/index.js     # Vercel Express entry
-│   ├── server.js        # Express API (port 5005 locally)
-│   ├── controllers/     # Signup, login, logout, create/list/redirect URLs
-│   ├── middlewares/     # JWT cookie auth
-│   ├── models/          # Mongoose schemas for users and URLs
-│   ├── routes/          # JSON API: /user, /url
-│   ├── utils/           # JWT + PRODUCTION_URL / cookie config
-│   └── app/             # Next.js pages
-├── .env.example
-└── package.json         # Runs API + Next together locally
+├── README.md
+└── web/                 # The whole app (Next.js + Express)
+    ├── api/index.js     # Vercel Express entry
+    ├── server.js        # Express API (port 5005 locally)
+    ├── controllers/
+    ├── middlewares/
+    ├── models/
+    ├── routes/
+    ├── utils/
+    ├── app/             # Next.js pages
+    └── .env.example
 ```
 
 ### Frontend routes (`web/`)
@@ -97,23 +97,18 @@ url-shortner/
 ### 1. Clone or open the project
 
 ```bash
-cd url-shortner
+cd url-shortner/web
 ```
 
 ### 2. Install dependencies
 
-Root (runs both processes) and `web/` (Express + Next.js):
-
 ```bash
 npm install
-cd web
-npm install
-cd ..
 ```
 
 ### 3. Create a `.env` file
 
-Copy `.env.example` to `.env` in the **project root** (gitignored):
+Copy `.env.example` to `.env` in **`web/`** (gitignored):
 
 ```env
 MONGODB_URI=
@@ -176,13 +171,15 @@ Visit [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
+Run these from `web/`:
+
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | API + Next.js together |
 | `npm run dev:api` | Express with `--watch` on port 5005 |
 | `npm run dev:web` | Next.js on port 3000 |
-| `npm run build:web` | Production build of `web/` |
-| `npm start` | Express only (`web/server.js`) |
+| `npm run build` | Production build |
+| `npm run start:api` | Express only |
 
 ---
 
@@ -202,8 +199,8 @@ Locally you still run two processes (`npm run dev`). Production is one Vercel ap
 
 ## Environment checklist
 
-- [ ] `npm install` in the root and in `web/`
-- [ ] `.env` has `MONGODB_URI`, `JWT_SECRET_KEY`, `LOCAL_*`, and `PRODUCTION_URL`
+- [ ] `cd web` then `npm install`
+- [ ] `web/.env` has `MONGODB_URI`, `JWT_SECRET_KEY`, `LOCAL_*`, and `PRODUCTION_URL`
 - [ ] MongoDB is reachable
 - [ ] `npm run dev` shows the API listening on 5005 and Next.js ready on 3000
 - [ ] Browser opens `http://localhost:3000`

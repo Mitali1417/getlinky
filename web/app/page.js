@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LogOut } from "lucide-react";
+import { ArrowRight, ArrowUpRight, LogOut } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -146,8 +146,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white">
-      <header className="sticky top-0 z-10 flex items-center justify-end gap-2 bg-neutral-800 px-4 py-2">
+    <div className="min-h-screen text-white">
+      <header className="sticky top-0 z-10 flex items-center justify-end gap-2 border-b border-border px-4 py-2">
         {authenticated ? (
           <AlertDialog>
             <AlertDialogTrigger
@@ -194,16 +194,16 @@ export default function HomePage() {
       </header>
 
       <main
-        className={`mx-auto flex w-full max-w-3xl flex-col px-4 ${
+        className={`mx-auto flex w-full max-w-6xl flex-col px-4 ${
           authenticated
             ? "gap-10 py-16"
             : "min-h-[calc(100vh-3.5rem)] items-center justify-center"
         }`}
       >
-        <section className="flex w-full flex-col items-center text-center">
+        <section className="flex w-full flex-col max-w-2xl mx-auto items-center text-center">
           <h1 className="text-6xl font-bold text-neutral-400">
             get
-            <span className="bg-linear-to-r from-emerald-400 to-sky-400 bg-clip-text text-transparent lowercase">
+            <span className="text-accent lowercase">
               linky
             </span>
           </h1>
@@ -227,7 +227,7 @@ export default function HomePage() {
           ) : null}
 
           <form
-            className="mt-8 flex w-full items-center gap-2  bg-neutral-950 p-2 shadow-xl"
+            className="mt-8 flex w-full items-center gap-2 p-2"
             onSubmit={onGenerate}
           >
             <Input
@@ -235,18 +235,18 @@ export default function HomePage() {
               type="text"
               value={url}
               onChange={(event) => setUrl(event.target.value)}
-              placeholder="Paste a long link"
+              placeholder="Paste your link here"
               required
-              className="h-11 flex-1 border-0 bg-transparent text-emerald-400 shadow-none placeholder:text-neutral-500 focus-visible:ring-0"
             />
             <Button type="submit" size="lg" loading={pending} disabled={pending}>
               Generate
+              <ArrowRight className="size-4 shrink-0" />
             </Button>
           </form>
         </section>
 
         {authenticated ? (
-          <Card className="w-full bg-black/60 text-left text-white ring-neutral-700">
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Your links</CardTitle>
               <CardDescription className="text-neutral-400">
@@ -262,9 +262,9 @@ export default function HomePage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-neutral-700 hover:bg-transparent">
-                      <TableHead className="text-neutral-400">Id</TableHead>
+                      {/* <TableHead className="text-neutral-400">Id</TableHead> */}
                       <TableHead className="text-neutral-400">Short URL</TableHead>
-                      <TableHead className="hidden text-neutral-400 sm:table-cell">
+                      <TableHead className="text-neutral-400">
                         Original URL
                       </TableHead>
                       <TableHead className="text-neutral-400">Clicks</TableHead>
@@ -273,32 +273,34 @@ export default function HomePage() {
                   <TableBody>
                     {urls.map((item) => (
                       <TableRow
-                        key={item.shortId}
-                        className="border-neutral-800 hover:bg-neutral-800/60"
-                      >
-                        <TableCell className="font-medium">{item.shortId}</TableCell>
-                        <TableCell className="max-w-[18rem] whitespace-normal break-all">
-                          <a
-                            className="text-emerald-400 hover:text-sky-400"
-                            href={shortLink(item)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {shortLink(item)}
-                          </a>
-                        </TableCell>
-                        <TableCell className="hidden max-w-xs truncate sm:table-cell">
-                          <a
-                            className="text-emerald-400 hover:text-sky-400"
-                            href={item.redirectURL}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {item.redirectURL}
-                          </a>
-                        </TableCell>
-                        <TableCell>{item.clicks}</TableCell>
-                      </TableRow>
+                      key={item.shortId}
+                      className="border-neutral-800 hover:bg-neutral-800/60"
+                    >
+                      <TableCell className="max-w-28">
+                        <a
+                          className="group flex items-center gap-2 text-secondary hover:text-accent/80 hover:underline"
+                          href={shortLink(item)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <span className="truncate">{shortLink(item)}</span>
+                          <ArrowUpRight className="size-4 shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                        </a>
+                      </TableCell>
+                      <TableCell className="max-w-[18rem]">
+                        <a
+                          className="group flex w-full items-center gap-2 text-secondary hover:text-accent/80 hover:underline"
+                          href={item.redirectURL}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <span className="truncate">{item.redirectURL}</span>
+                          <ArrowUpRight className="size-4 shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                        </a>
+                      </TableCell>
+                    
+                      <TableCell>{item.clicks}</TableCell>
+                    </TableRow>
                     ))}
                   </TableBody>
                 </Table>

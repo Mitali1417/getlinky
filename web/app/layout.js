@@ -8,8 +8,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "URL Shortener",
-  description: "Shorten links and track clicks",
+  title: "getlinky",
+  description: "getlinky is a URL shortener that allows you to shorten your links and track your clicks.",
 };
 
 export default function RootLayout({ children }) {

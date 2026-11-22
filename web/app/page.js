@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LogOut } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,53 +37,91 @@ import { api, publicShortUrl } from "@/lib/api";
 import { toastError } from "@/lib/errors";
 import { logError } from "@/lib/logger";
 
+const PENDING_URL_KEY = "pendingShortenUrl";
+
 export default function HomePage() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
   const [urls, setUrls] = useState([]);
+  const [url, setUrl] = useState("");
   const [generated, setGenerated] = useState("");
   const [pending, setPending] = useState(false);
+  const resumedRef = useRef(false);
 
   const loadUrls = useCallback(async () => {
     const data = await api("/url");
     setUrls(data.urls || []);
   }, []);
 
+  const createShortLink = useCallback(
+    async (longUrl) => {
+      const data = await api("/url", {
+        method: "POST",
+        body: JSON.stringify({ url: longUrl }),
+      });
+      setGenerated(publicShortUrl(data.id, data.shortUrl));
+      setUrl("");
+      await loadUrls();
+      toast.success("Short URL created");
+    },
+    [loadUrls]
+  );
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         await api("/user/me");
+        if (cancelled) return;
+        setAuthenticated(true);
         await loadUrls();
-        if (!cancelled) setReady(true);
       } catch (error) {
-        logError("home auth", error);
-        if (error.status !== 401) {
-          toastError(error, "Could not load your links");
+        if (cancelled) return;
+        setAuthenticated(false);
+        if (error.status && error.status !== 401) {
+          logError("home auth", error);
+          toastError(error, "Could not check your session");
         }
-        if (!cancelled) router.replace("/login");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [loadUrls, router]);
+  }, [loadUrls]);
+
+  useEffect(() => {
+    if (!authenticated || resumedRef.current) return;
+    const pendingUrl = sessionStorage.getItem(PENDING_URL_KEY);
+    if (!pendingUrl) return;
+    resumedRef.current = true;
+    sessionStorage.removeItem(PENDING_URL_KEY);
+    setUrl(pendingUrl);
+    setPending(true);
+    createShortLink(pendingUrl).finally(() => setPending(false));
+  }, [authenticated, createShortLink]);
 
   async function onGenerate(event) {
     event.preventDefault();
+    const longUrl = url.trim();
+    if (!longUrl) return;
+
+    if (!authenticated) {
+      sessionStorage.setItem(PENDING_URL_KEY, longUrl);
+      toast.info("Sign in to generate a short link");
+      router.push("/login");
+      return;
+    }
+
     setPending(true);
-    const form = new FormData(event.currentTarget);
     try {
-      const data = await api("/url", {
-        method: "POST",
-        body: JSON.stringify({ url: form.get("url") }),
-      });
-      setGenerated(publicShortUrl(data.id, data.shortUrl));
-      event.currentTarget.reset();
-      await loadUrls();
-      toast.success("Short URL created");
+      await createShortLink(longUrl);
     } catch (error) {
       logError("generate url", error);
+      if (error.status === 401) {
+        sessionStorage.setItem(PENDING_URL_KEY, longUrl);
+        router.push("/login");
+        return;
+      }
       toastError(error, "Could not generate a short URL");
     } finally {
       setPending(false);
@@ -91,68 +131,88 @@ export default function HomePage() {
   async function onLogout() {
     try {
       await api("/user/logout", { method: "POST" });
+      setAuthenticated(false);
+      setUrls([]);
+      setGenerated("");
       toast.success("Logged out");
-      router.replace("/login");
     } catch (error) {
       logError("logout", error);
       toastError(error, "Logout failed");
-      router.replace("/login");
     }
   }
 
-  function shortLink(url) {
-    return publicShortUrl(url.shortId, url.shortUrl);
-  }
-
-  if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-900 text-neutral-400">
-        Loading...
-      </div>
-    );
+  function shortLink(item) {
+    return publicShortUrl(item.shortId, item.shortUrl);
   }
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white">
-      <header className="sticky top-0 z-10 flex justify-end bg-neutral-700 px-4 py-2 shadow-lg shadow-black/40">
-        <AlertDialog>
-          <AlertDialogTrigger
-            nativeButton={false}
-            render={<Button variant="outline" />}
-          >
-            Logout
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Log out?</AlertDialogTitle>
-              <AlertDialogDescription>
-                You will need to sign in again to manage your short links.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" onClick={onLogout}>
-                Log out
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      <header className="sticky top-0 z-10 flex items-center justify-end gap-2 bg-neutral-800 px-4 py-2">
+        {authenticated ? (
+          <AlertDialog>
+            <AlertDialogTrigger
+              nativeButton={false}
+              render={<Button variant="destructive" size="icon" />}
+            >
+              <LogOut />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  Logout <LogOut className="size-4" />
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  You will need to sign in again to manage your short links.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" onClick={onLogout}>
+                  Logout
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
+          <>
+            <Button
+              nativeButton={false}
+              variant="ghost"
+              render={<Link href="/login" />}
+            >
+              Login
+            </Button>
+            <Button
+              nativeButton={false}
+              variant="default"
+              render={<Link href="/signup" />}
+            >
+              Signup
+            </Button>
+          </>
+        )}
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
-        <section className="flex w-full flex-col justify-center lg:py-16">
-          <h2 className="text-6xl font-bold text-neutral-400">
+      <main
+        className={`mx-auto flex w-full max-w-3xl flex-col px-4 ${
+          authenticated
+            ? "gap-10 py-16"
+            : "min-h-[calc(100vh-3.5rem)] items-center justify-center"
+        }`}
+      >
+        <section className="flex w-full flex-col items-center text-center">
+          <h1 className="text-6xl font-bold text-neutral-400">
             get
-            <span className="bg-linear-to-r from-emerald-400 to-sky-400 bg-clip-text font-semibold text-transparent lowercase">
-            linky
+            <span className="bg-linear-to-r from-emerald-400 to-sky-400 bg-clip-text text-transparent lowercase">
+              linky
             </span>
-          </h2>
-          <h2 className="text-2xl mt-6 font-semibold text-neutral-400">
+          </h1>
+          <p className="mt-4 text-xl font-medium text-neutral-400">
             Your short links, your way.
-          </h2>
+          </p>
 
           {generated ? (
-            <p className="mt-4 break-all text-sm text-neutral-400">
+            <p className="mt-4 w-full break-all text-sm text-neutral-400">
               Generated URL:
               <br />
               <a
@@ -164,74 +224,88 @@ export default function HomePage() {
                 {generated}
               </a>
             </p>
-          ) : null}   
+          ) : null}
 
-          <form className="mt-6 flex gap-4" onSubmit={onGenerate}>
+          <form
+            className="mt-8 flex w-full items-center gap-2  bg-neutral-950 p-2 shadow-xl"
+            onSubmit={onGenerate}
+          >
             <Input
               name="url"
               type="text"
-              placeholder="Paste the original link"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="Paste a long link"
               required
-              className="h-11 w-full border-neutral-700 bg-black text-emerald-400 placeholder:text-neutral-500"
+              className="h-11 flex-1 border-0 bg-transparent text-emerald-400 shadow-none placeholder:text-neutral-500 focus-visible:ring-0"
             />
-            <Button type="submit" size="lg" className="w-52" disabled={pending}>
-              {pending ? "Generating..." : "Generate"}
+            <Button type="submit" size="lg" loading={pending} disabled={pending}>
+              Generate
             </Button>
           </form>
         </section>
 
-        <Card className="w-full bg-black/60 text-white ring-neutral-700">
-          <CardHeader>
-            <CardTitle>Your links</CardTitle>
-            <CardDescription className="text-neutral-400">
-              Click counts update when someone opens a short URL.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {urls.length === 0 ? (
-              <p className="text-sm text-neutral-500">
-                No shortened URLs yet. Paste a link to create one.
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-neutral-700 hover:bg-transparent">
-                    <TableHead className="text-neutral-400">Id</TableHead>
-                    <TableHead className="text-neutral-400">Short URL</TableHead>
-                    <TableHead className="hidden text-neutral-400 sm:table-cell">
-                      Original URL
-                    </TableHead>
-                    <TableHead className="text-neutral-400">Clicks</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {urls.map((url) => (
-                    <TableRow
-                      key={url.shortId}
-                      className="border-neutral-800 hover:bg-neutral-800/60"
-                    >
-                      <TableCell className="font-medium">{url.shortId}</TableCell>
-                      <TableCell className="max-w-[18rem] whitespace-normal break-all">
-                        <a
-                          className="text-emerald-400 hover:text-sky-400"
-                          href={shortLink(url)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {shortLink(url)}
-                        </a>
-                      </TableCell>
-                      <TableCell className="hidden max-w-xs truncate sm:table-cell">
-                        {url.redirectURL}
-                      </TableCell>
-                      <TableCell>{url.clicks}</TableCell>
+        {authenticated ? (
+          <Card className="w-full bg-black/60 text-left text-white ring-neutral-700">
+            <CardHeader>
+              <CardTitle>Your links</CardTitle>
+              <CardDescription className="text-neutral-400">
+                Click counts update when someone opens a short URL.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {urls.length === 0 ? (
+                <p className="text-sm text-neutral-500">
+                  No shortened URLs yet. Paste a link to create one.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-neutral-700 hover:bg-transparent">
+                      <TableHead className="text-neutral-400">Id</TableHead>
+                      <TableHead className="text-neutral-400">Short URL</TableHead>
+                      <TableHead className="hidden text-neutral-400 sm:table-cell">
+                        Original URL
+                      </TableHead>
+                      <TableHead className="text-neutral-400">Clicks</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {urls.map((item) => (
+                      <TableRow
+                        key={item.shortId}
+                        className="border-neutral-800 hover:bg-neutral-800/60"
+                      >
+                        <TableCell className="font-medium">{item.shortId}</TableCell>
+                        <TableCell className="max-w-[18rem] whitespace-normal break-all">
+                          <a
+                            className="text-emerald-400 hover:text-sky-400"
+                            href={shortLink(item)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {shortLink(item)}
+                          </a>
+                        </TableCell>
+                        <TableCell className="hidden max-w-xs truncate sm:table-cell">
+                          <a
+                            className="text-emerald-400 hover:text-sky-400"
+                            href={item.redirectURL}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {item.redirectURL}
+                          </a>
+                        </TableCell>
+                        <TableCell>{item.clicks}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
       </main>
     </div>
   );

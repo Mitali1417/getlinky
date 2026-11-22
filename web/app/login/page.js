@@ -66,8 +66,8 @@ export default function LoginPage() {
             className="h-10 border-white/20 text-white placeholder:text-neutral-500"
           />
         </div>
-        <Button type="submit" size="lg" className="mt-2 w-full" disabled={pending}>
-          {pending ? "Signing in..." : "Submit"}
+        <Button type="submit" loading={pending} size="lg" className="mt-2 w-full" disabled={pending}>
+          Sign in 
         </Button>
       </form>
       <div className="mt-6 flex w-full items-center gap-3">
@@ -80,6 +80,7 @@ export default function LoginPage() {
       </p>
       <Button
         nativeButton={false}
+        loading={pending}
         variant="secondary"
         size="lg"
         className="mt-2 w-full"

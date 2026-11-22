@@ -1,5 +1,6 @@
 import { Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { SessionProvider } from "@/components/session-provider";
 import "./globals.css";
 
 const geistMono = Geist_Mono({
@@ -9,7 +10,8 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "getlinky",
-  description: "getlinky is a URL shortener that allows you to shorten your links and track your clicks.",
+  description:
+    "getlinky is a URL shortener that allows you to shorten your links and track your clicks.",
 };
 
 export default function RootLayout({ children }) {
@@ -19,8 +21,8 @@ export default function RootLayout({ children }) {
       className={`dark ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        {children}
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
+        <SessionProvider>{children}</SessionProvider>
         <Toaster position="top-right" richColors closeButton />
       </body>
     </html>

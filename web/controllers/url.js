@@ -41,6 +41,7 @@ const handleListURLs = async (req, res) => {
         redirectURL: url.redirectURL,
         shortUrl: toPublicUrl(url.shortId),
         clicks: url.visitHistory?.length || 0,
+        createdAt: url.createdAt,
       })),
     });
   } catch (error) {
@@ -76,5 +77,27 @@ const handleGetURL = async (req, res) => {
   }
 };
 
-module.exports = { handleGenerateURL, handleGetURL, handleListURLs };
+const handleDeleteURL = async (req, res) => {
+  const shortId = req.params.shortId;
+  try {
+    const deleted = await URL.findOneAndDelete({
+      shortId,
+      createdBy: req.user._id,
+    });
+    if (!deleted) {
+      return res.status(404).json({ error: "URL not found" });
+    }
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("[delete-url]", error);
+    return res.status(500).json({ error: "Error deleting URL" });
+  }
+};
+
+module.exports = {
+  handleGenerateURL,
+  handleGetURL,
+  handleListURLs,
+  handleDeleteURL,
+};
 module.exports.default = module.exports;

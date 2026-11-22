@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { toast } from "sonner";
 import { AuthShell } from "@/components/auth-shell";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,15 @@ import { PasswordInput } from "@/components/password-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useSession } from "@/components/session-provider";
 import { api } from "@/lib/api";
 import { toastError } from "@/lib/errors";
 import { logError } from "@/lib/logger";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { refresh } = useSession();
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event) {
@@ -31,8 +34,9 @@ export default function LoginPage() {
         }),
       });
       toast.success("Logged in");
-      router.push("/");
-      router.refresh();
+      await refresh();
+      const next = searchParams.get("next") || "/";
+      router.push(next.startsWith("/") ? next : "/");
     } catch (error) {
       logError("login", error);
       toastError(error, "Login failed");
@@ -89,5 +93,13 @@ export default function LoginPage() {
         Signup
       </Button>
     </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

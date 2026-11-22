@@ -70,8 +70,12 @@ const handleMe = async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
+    const dbUser = await USER.findById(req.user._id).select("name email");
+    if (!dbUser) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     return res.json({
-      user: { _id: req.user._id, email: req.user.email },
+      user: { _id: dbUser._id, name: dbUser.name, email: dbUser.email },
     });
   } catch (error) {
     console.error("[me]", error);

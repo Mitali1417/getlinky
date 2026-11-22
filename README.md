@@ -64,7 +64,8 @@ url-shortner/
 
 | Path | Page |
 | --- | --- |
-| `/` | Home composer; link table if signed in |
+| `/` | Shorten page |
+| `/links` | My links table (signed in) |
 | `/login` | Login |
 | `/signup` | Signup |
 | `/home` | Redirects to `/` |

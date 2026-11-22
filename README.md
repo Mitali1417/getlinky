@@ -13,7 +13,7 @@ Live example: `https://url-shortner-cxtz.onrender.com`
 - Generate a unique short ID for any URL (`shortid`)
 - Redirect from `/url/:shortId` to the original link
 - Per-user URL list with click counts
-- Server-rendered UI with EJS and static CSS
+- Next.js UI with Tailwind CSS and shadcn/ui
 
 ---
 
@@ -25,8 +25,8 @@ Live example: `https://url-shortner-cxtz.onrender.com`
 | Layer     | Tools                             |
 | --------- | --------------------------------- |
 | Runtime   | Node.js                           |
-| Server    | Express                           |
-| Views     | EJS                               |
+| API       | Express                           |
+| Frontend  | Next.js, Tailwind CSS, shadcn/ui  |
 | Database  | MongoDB + Mongoose                |
 | Auth      | JSON Web Tokens + `cookie-parser` |
 | Short IDs | `shortid`                         |
@@ -43,11 +43,10 @@ url-shortner/
 ├── controllers/       # Signup, login, logout, create/redirect URLs
 ├── middlewares/       # Protect routes; attach user from JWT cookie
 ├── models/            # Mongoose schemas for users and URLs
-├── public/            # CSS and static assets
-├── routes/            # URL, user, and page routes
+├── routes/            # JSON API for users and URLs
 ├── utils/auth.js      # Sign and verify JWT
-├── views/             # home.ejs, login.ejs, signup.ejs
-├── server.js          # App bootstrap, MongoDB, listen on port 5005
+├── web/               # Next.js + Tailwind + shadcn frontend
+├── server.js          # Express API, MongoDB, listen on port 5005
 ├── .env               # Secrets (not committed)
 └── package.json
 ```
@@ -84,7 +83,15 @@ cd url-shortner
 npm install
 ```
 
-This installs Express, Mongoose, EJS, `cookie-parser`, `dotenv`, `shortid`, and related packages. Auth tokens are signed with Node’s built-in `crypto` module.
+This installs Express, Mongoose, `cookie-parser`, `dotenv`, `shortid`, and related packages. Then install the frontend:
+
+```bash
+cd web
+npm install
+cd ..
+```
+
+Auth tokens are signed with Node’s built-in `crypto` module.
 
 ### 3. Create a `.env` file
 
@@ -93,13 +100,23 @@ In the project root, create `.env` (this file is gitignored):
 ```env
 MONGODB_URI=
 JWT_SECRET_KEY=
+LOCAL_FRONTEND_URL=http://localhost:3000
+LOCAL_BASE_URL=http://localhost:5005
+PRODUCTION_FRONTEND_URL=https://your-frontend.vercel.app
+PRODUCTION_BASE_URL=https://your-api.vercel.app
 ```
 
 
-| Variable         | Purpose                                     |
-| ---------------- | ------------------------------------------- |
-| `MONGODB_URI`    | Connection string for MongoDB               |
-| `JWT_SECRET_KEY` | Secret used to sign and verify login tokens |
+| Variable                   | Purpose                                      |
+| -------------------------- | -------------------------------------------- |
+| `MONGODB_URI`              | Connection string for MongoDB                |
+| `JWT_SECRET_KEY`           | Secret used to sign and verify login tokens  |
+| `LOCAL_FRONTEND_URL`       | Next.js origin while developing              |
+| `LOCAL_BASE_URL`           | Express origin used in short links locally   |
+| `PRODUCTION_FRONTEND_URL`  | Deployed Next.js origin                      |
+| `PRODUCTION_BASE_URL`      | Deployed API / public short-link origin      |
+
+`npm run dev` uses the `LOCAL_*` values. Production (`NODE_ENV=production` or Vercel) uses the `PRODUCTION_*` values. Cookies are `secure` + `SameSite=None` only when the frontend and API are on different HTTPS origins.
 
 
 **Atlas example:**
@@ -120,24 +137,19 @@ Use a strong, private `JWT_SECRET_KEY`. Do not commit `.env`.
 
 ### 5. Start the server
 
-Run:
+Run the API and the Next.js app together:
 
 ```bash
-node server.js
+npm run dev
 ```
 
-You should see:
+You should see MongoDB connected on port **5005** and Next.js on port **3000**.
 
-```text
-MongoDB Connected
-Server is listening at http://localhost:5005
-```
-
-If MongoDB fails, the console logs `Error Occured` and the app will still start, but signup, login, and shortening will not work until the URI is valid.
+If MongoDB fails, the console logs `Error Occured` and the API will still start, but signup, login, and shortening will not work until the URI is valid.
 
 ### 6. Open the app
 
-Visit [http://localhost:5005](http://localhost:5005). Unauthenticated users are sent to `/login`.
+Visit [http://localhost:3000](http://localhost:3000). Unauthenticated users are sent to `/login`. Short links are served at `/url/:shortId` through the Next.js rewrite to Express.
 
 ---
 
@@ -147,8 +159,8 @@ Visit [http://localhost:5005](http://localhost:5005). Unauthenticated users are 
 - [ ] `npm install` completed
 - [ ] `.env` exists with `MONGODB_URI` and `JWT_SECRET_KEY`
 - [ ] MongoDB is reachable
-- [ ] `node server.js` prints **MongoDB Connected**
-- [ ] Browser opens `http://localhost:5005`
+- [ ] `npm run dev` prints **MongoDB Connected** and Next.js ready
+- [ ] Browser opens `http://localhost:3000`
 - [ ] Signup → login → generate → open `/url/<id>` → click count increases after you return to home
 
 ---
@@ -170,7 +182,7 @@ This app works as a **single-server learning project**. A production URL shorten
 ### Core product and routing
 
 - **Public redirects.** `/url` is wrapped in `restrictToLoggedInUserOnly`, so opening a short link requires a login cookie. Production shorteners must resolve **anonymously** and fast.
-- **Hardcoded host.** Generated links in `home.ejs` always use the Render domain, not `PORT` / `BASE_URL`. Local and other environments print the wrong URL.
+- **Hardcoded host.** Generated links fall back to the current browser origin; set `BASE_URL` for the API response.
 - **No custom aliases, expiry, or edit/delete.** No vanity slugs, TTL, disable/archive, or ownership transfer.
 - **No public API.** Only HTML form posts; no versioned REST API for apps, QR, or bulk create.
 - **No 301 vs 302 policy.** Permanent vs temporary redirects matter for SEO, caching, and updating a destination later.

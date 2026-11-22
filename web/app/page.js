@@ -2,6 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -104,14 +115,28 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-neutral-900 text-white">
       <header className="sticky top-0 z-10 flex justify-end bg-neutral-700 px-4 py-2 shadow-lg shadow-black/40">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onLogout}
-          className="border-transparent bg-black text-white hover:bg-black hover:shadow-[0.2rem_0.2rem_0_#66cc66]"
-        >
-          Logout
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger
+            nativeButton={false}
+            render={<Button variant="outline" />}
+          >
+            Logout
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Log out?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You will need to sign in again to manage your short links.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" onClick={onLogout}>
+                Log out
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
@@ -139,7 +164,7 @@ export default function HomePage() {
                 {generated}
               </a>
             </p>
-          ) : null}
+          ) : null}   
 
           <form className="mt-6 flex gap-4" onSubmit={onGenerate}>
             <Input
@@ -149,11 +174,7 @@ export default function HomePage() {
               required
               className="h-11 w-full border-neutral-700 bg-black text-emerald-400 placeholder:text-neutral-500"
             />
-            <Button
-              type="submit"
-              disabled={pending}
-              className="h-11 w-52 bg-linear-to-r from-emerald-400 to-sky-400 text-black hover:bg-white hover:text-neutral-700"
-            >
+            <Button type="submit" size="lg" className="w-52" disabled={pending}>
               {pending ? "Generating..." : "Generate"}
             </Button>
           </form>

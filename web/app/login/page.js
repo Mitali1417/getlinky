@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthShell } from "@/components/auth-shell";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "cn";
+import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/password-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -58,40 +58,35 @@ export default function LoginPage() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">Password</Label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
             placeholder="Password"
             required
             className="h-10 border-white/20 text-white placeholder:text-neutral-500"
           />
         </div>
-        <Button
-          type="submit"
-          disabled={pending}
-          className="mt-2 h-10 w-full rounded-full bg-emerald-400 text-black hover:bg-transparent hover:text-white hover:ring-2 hover:ring-white"
-        >
+        <Button type="submit" size="lg" className="mt-2 w-full" disabled={pending}>
           {pending ? "Signing in..." : "Submit"}
         </Button>
       </form>
       <div className="mt-6 flex w-full items-center gap-3">
-        <Separator className="flex-1 bg-emerald-400/70" />
+        <Separator className="flex-1 bg-emerald-400/70" />  
         <span className="text-sm font-semibold text-neutral-500">Or</span>
         <Separator className="flex-1 bg-emerald-400/70" />
       </div>
       <p className="mt-4 text-sm font-semibold text-neutral-500">
         Don&apos;t have account?
       </p>
-      <Link
-        href="/signup"
-        className={cn(
-          buttonVariants({ variant: "secondary" }),
-          "mt-2 h-10 w-full rounded-full bg-neutral-700 text-white hover:bg-neutral-600"
-        )}
+      <Button
+        nativeButton={false}
+        variant="secondary"
+        size="lg"
+        className="mt-2 w-full"
+        render={<Link href="/signup" />}
       >
         Signup
-      </Link>
+      </Button>
     </AuthShell>
   );
 }

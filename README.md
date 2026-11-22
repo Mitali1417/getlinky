@@ -1,73 +1,99 @@
 # URL Shortener
 
-A Node.js web app that turns long links into short, shareable URLs. Users sign up, log in, generate short IDs, and track how many times each link is clicked. Short URLs redirect to the original destination and visit history is stored in MongoDB.
-
-Live example: `https://url-shortner-cxtz.onrender.com`
+Turns long links into short, shareable URLs. The home page is a public composer (Gemini-style). Anyone can paste a link; generating one requires an account. Signed-in users get a personal list with click counts. Short IDs redirect to the original destination. Visit history is stored in MongoDB.
 
 ---
 
 ## Features
 
-- User signup, login, and logout
-- JWT stored in an HTTP cookie (`uid`) for session auth
-- Generate a unique short ID for any URL (`shortid`)
+- Public home page with a paste field and **Generate** button
+- Signup, login, and logout (logout asks for confirmation)
+- Password show/hide on login and signup
+- Guests are sent to login only when they try to generate; after login the saved URL is shortened automatically
+- JWT in an HTTP cookie (`uid`) for session auth
+- Unique short IDs (`shortid`)
 - Redirect from `/url/:shortId` to the original link
-- Per-user URL list with click counts
-- Next.js UI with Tailwind CSS and shadcn/ui
+- Per-user table of short URLs, original URLs, and click counts
+- Toasts for success and errors (including API-down)
+- Next.js UI with Tailwind CSS, shadcn/ui, and Google Sans
 
 ---
 
+## How it works
 
+| Who | Home | Generate | Your links |
+| --- | --- | --- | --- |
+| Guest | Composer is visible | Redirects to `/login` | Hidden |
+| Signed in | Same composer | Creates a short URL | Shown below |
+
+Locally the UI runs on **port 3000**. Next.js rewrites `/user` and `/url` to the Express API on **port 5005**. Short links look like `http://localhost:5005/url/<id>` (or your `LOCAL_BASE_URL` / `PRODUCTION_BASE_URL`).
+
+---
 
 ## Tech stack
 
-
-| Layer     | Tools                             |
-| --------- | --------------------------------- |
-| Runtime   | Node.js                           |
-| API       | Express                           |
-| Frontend  | Next.js, Tailwind CSS, shadcn/ui  |
-| Database  | MongoDB + Mongoose                |
-| Auth      | JSON Web Tokens + `cookie-parser` |
-| Short IDs | `shortid`                         |
-
+| Layer | Tools |
+| --- | --- |
+| Runtime | Node.js |
+| API | Express, JSON |
+| Frontend | Next.js (App Router), Tailwind CSS, shadcn/ui |
+| Database | MongoDB + Mongoose |
+| Auth | HMAC JWT (`utils/auth.js`) + `cookie-parser` |
+| Short IDs | `shortid` |
 
 ---
-
-
 
 ## Project structure
 
 ```text
 url-shortner/
-├── controllers/       # Signup, login, logout, create/redirect URLs
-├── middlewares/       # Protect routes; attach user from JWT cookie
-├── models/            # Mongoose schemas for users and URLs
-├── routes/            # JSON API for users and URLs
-├── utils/auth.js      # Sign and verify JWT
-├── web/               # Next.js + Tailwind + shadcn frontend
-├── server.js          # Express API, MongoDB, listen on port 5005
-├── .env               # Secrets (not committed)
+├── api/                 # Vercel serverless entry (Express)
+├── controllers/         # Signup, login, logout, create/list/redirect URLs
+├── middlewares/         # JWT cookie auth
+├── models/              # Mongoose schemas for users and URLs
+├── routes/              # JSON API: /user, /url
+├── utils/
+│   ├── auth.js          # Sign and verify JWT
+│   └── config.js        # LOCAL_* vs PRODUCTION_* hosts and cookies
+├── web/                 # Next.js app (pages, shadcn, toasts)
+├── server.js            # Express API, MongoDB, port 5005
+├── .env.example         # Env template (copy to .env)
 └── package.json
 ```
 
+### Frontend routes (`web/`)
+
+| Path | Page |
+| --- | --- |
+| `/` | Home composer; link table if signed in |
+| `/login` | Login |
+| `/signup` | Signup |
+| `/home` | Redirects to `/` |
+
+### API routes (Express)
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/user` | No | Signup |
+| `POST` | `/user/login` | No | Login (sets `uid` cookie) |
+| `POST` | `/user/logout` | No | Clear cookie |
+| `GET` | `/user/me` | Yes | Current session |
+| `GET` | `/url` | Yes | List this user’s URLs |
+| `POST` | `/url` | Yes | Create a short URL |
+| `GET` | `/url/:shortId` | Yes | Redirect and record a click |
+| `GET` | `/api/health` | No | Health check |
+
 ---
-
-
 
 ## Prerequisites
 
 1. **Node.js** (LTS recommended) and npm
-2. **MongoDB**: local install, MongoDB Atlas, or any MongoDB URI
+2. **MongoDB** (local, Atlas, or any URI)
 3. A terminal in the project folder
 
 ---
 
-
-
-## Setup guide (step by step)
-
-
+## Setup
 
 ### 1. Clone or open the project
 
@@ -75,49 +101,40 @@ url-shortner/
 cd url-shortner
 ```
 
-
-
 ### 2. Install dependencies
+
+Root (API) and frontend:
 
 ```bash
 npm install
-```
-
-This installs Express, Mongoose, `cookie-parser`, `dotenv`, `shortid`, and related packages. Then install the frontend:
-
-```bash
 cd web
 npm install
 cd ..
 ```
 
-Auth tokens are signed with Node’s built-in `crypto` module.
-
 ### 3. Create a `.env` file
 
-In the project root, create `.env` (this file is gitignored):
+Copy `.env.example` to `.env` in the **project root** (gitignored):
 
 ```env
 MONGODB_URI=
 JWT_SECRET_KEY=
 LOCAL_FRONTEND_URL=http://localhost:3000
 LOCAL_BASE_URL=http://localhost:5005
-PRODUCTION_FRONTEND_URL=https://your-frontend.vercel.app
-PRODUCTION_BASE_URL=https://your-api.vercel.app
+PRODUCTION_FRONTEND_URL=https://your-frontend.example.com
+PRODUCTION_BASE_URL=https://your-api.example.com
 ```
 
+| Variable | Purpose |
+| --- | --- |
+| `MONGODB_URI` | MongoDB connection string |
+| `JWT_SECRET_KEY` | Secret used to sign and verify login tokens |
+| `LOCAL_FRONTEND_URL` | Next.js origin in development |
+| `LOCAL_BASE_URL` | Express origin used in short links locally |
+| `PRODUCTION_FRONTEND_URL` | Deployed Next.js origin |
+| `PRODUCTION_BASE_URL` | Deployed API / public short-link origin |
 
-| Variable                   | Purpose                                      |
-| -------------------------- | -------------------------------------------- |
-| `MONGODB_URI`              | Connection string for MongoDB                |
-| `JWT_SECRET_KEY`           | Secret used to sign and verify login tokens  |
-| `LOCAL_FRONTEND_URL`       | Next.js origin while developing              |
-| `LOCAL_BASE_URL`           | Express origin used in short links locally   |
-| `PRODUCTION_FRONTEND_URL`  | Deployed Next.js origin                      |
-| `PRODUCTION_BASE_URL`      | Deployed API / public short-link origin      |
-
-`npm run dev` uses the `LOCAL_*` values. Production (`NODE_ENV=production` or Vercel) uses the `PRODUCTION_*` values. Cookies are `secure` + `SameSite=None` only when the frontend and API are on different HTTPS origins.
-
+`npm run dev` uses `LOCAL_*`. Production (`NODE_ENV=production` or Vercel) uses `PRODUCTION_*`. Cookies are `httpOnly`. They use `secure` and `SameSite=None` only when the UI and API are on different HTTPS origins; otherwise `SameSite=Lax`.
 
 **Atlas example:**
 
@@ -128,116 +145,123 @@ JWT_SECRET_KEY=replace-with-a-long-random-secret
 
 Use a strong, private `JWT_SECRET_KEY`. Do not commit `.env`.
 
-### 4. Start MongoDB
+### 4. MongoDB
 
-- **Local:** start the MongoDB service so it is listening on the URI you set.
-- **Atlas:** no local process; the URI in `.env` is enough. Allow your IP in Atlas Network Access.
+- **Local:** start MongoDB so it matches your URI.
+- **Atlas:** no local process; allow your IP in Network Access.
 
-
-
-### 5. Start the server
-
-Run the API and the Next.js app together:
+### 5. Start both servers
 
 ```bash
 npm run dev
 ```
 
-You should see MongoDB connected on port **5005** and Next.js on port **3000**.
+This runs Express (`dev:api`) and Next.js (`dev:web`). You should see the API on **5005** and the UI on **3000**.
 
-If MongoDB fails, the console logs `Error Occured` and the API will still start, but signup, login, and shortening will not work until the URI is valid.
+If MongoDB is down, the API can still listen, but signup, login, and shortening will fail until the URI works.
+
+Separate commands:
+
+```bash
+npm run dev:api
+npm run dev:web
+```
 
 ### 6. Open the app
 
-Visit [http://localhost:3000](http://localhost:3000). Unauthenticated users are sent to `/login`. Short links are served at `/url/:shortId` through the Next.js rewrite to Express.
+Visit [http://localhost:3000](http://localhost:3000).
+
+1. Paste a URL and click **Generate** (you will be asked to log in if needed).
+2. Sign up or log in, then generate again (or the saved URL is created after login).
+3. Open `/url/<id>` (via the API host) and confirm the click count updates on home.
 
 ---
 
+## Scripts
 
-## Environment and config checklist
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | API + Next.js together |
+| `npm run dev:api` | Express with `--watch` on port 5005 |
+| `npm run dev:web` | Next.js on port 3000 |
+| `npm run build:web` | Production build of `web/` |
+| `npm start` | Express only (`node server.js`) |
 
-- [ ] `npm install` completed
-- [ ] `.env` exists with `MONGODB_URI` and `JWT_SECRET_KEY`
+---
+
+## Environment checklist
+
+- [ ] `npm install` in the root and in `web/`
+- [ ] `.env` has `MONGODB_URI`, `JWT_SECRET_KEY`, and the `LOCAL_*` / `PRODUCTION_*` URLs
 - [ ] MongoDB is reachable
-- [ ] `npm run dev` prints **MongoDB Connected** and Next.js ready
+- [ ] `npm run dev` shows the API listening on 5005 and Next.js ready on 3000
 - [ ] Browser opens `http://localhost:3000`
-- [ ] Signup → login → generate → open `/url/<id>` → click count increases after you return to home
+- [ ] Guest can see the composer; Generate sends them to login
+- [ ] After login, a short link is created and listed
+- [ ] Opening `/url/<id>` increments clicks
 
 ---
-
-
 
 ## Notes
 
 - This is a practice project. Do not run it as a public production shortener without addressing the gaps below.
-- `uuid` is listed in `package.json` from an older session-map approach; auth now uses JWT in `utils/auth.js`.
-- To add a start script later, you can put `"start": "node server.js"` under `scripts` in `package.json`.
+- `uuid` remains in `package.json` from an older session-map approach; auth uses JWT in `utils/auth.js`.
+- Auth tokens are signed with Node’s built-in `crypto` module (HMAC-SHA256).
 
 ---
 
 ## Limitations (system design and production)
 
-This app works as a **single-server learning project**. A production URL shortener (Bitly-style) would still need the following.
+This app is a **learning project**. A production shortener (Bitly-style) would still need the following.
 
 ### Core product and routing
 
-- **Public redirects.** `/url` is wrapped in `restrictToLoggedInUserOnly`, so opening a short link requires a login cookie. Production shorteners must resolve **anonymously** and fast.
-- **Hardcoded host.** Generated links fall back to the current browser origin; set `BASE_URL` for the API response.
-- **No custom aliases, expiry, or edit/delete.** No vanity slugs, TTL, disable/archive, or ownership transfer.
-- **No public API.** Only HTML form posts; no versioned REST API for apps, QR, or bulk create.
-- **No 301 vs 302 policy.** Permanent vs temporary redirects matter for SEO, caching, and updating a destination later.
-- **Home list does not paginate or search.** It loads every URL for the user in one query.
+- **Authenticated redirects.** `/url` is wrapped in `restrictToLoggedInUserOnly`, so opening a short link still needs a login cookie. Production shorteners resolve **anonymously**.
+- **No custom aliases, expiry, or edit/delete.**
+- **No versioned public REST API** for third-party apps, QR, or bulk create (the UI uses JSON internally).
+- **No 301 vs 302 policy.**
+- **Home list does not paginate or search.**
 
 ### Scale and architecture
 
-- **Every redirect hits MongoDB.** Hot keys should be cached (for example Redis) with the database as source of truth. Redirects are the latency-critical path.
-- **No ID design.** `shortid` is random, not unique-indexed, and collisions are not retried. Production usually uses a **counter + Base62**, Snowflake/KSUID, or a dedicated ID service, plus uniqueness guarantees.
-- **Unbounded `visitHistory` array.** Each click `$push`es into the URL document. High-traffic links can hit MongoDB’s **16MB** document limit and slow writes. Clicks belong in a **separate events store** (or time-series), with aggregates updated asynchronously.
-- **Single process, fixed port 5005.** No `PORT` from env, no clustering, no horizontal scale.
-- **MongoDB as the only store.** No replica-set / failover story, no read replicas for analytics, no queue for click ingestion.
-- **No cache, CDN, or edge redirects.** Real shorteners often terminate redirects at the edge for low TTFB worldwide.
-- **No rate limiting or backpressure.** Abuse (mass create, scrape, DDoS on `/url/:id`) is unmitigated.
-- **No partition / shard key** for billions of mappings.
+- **Every redirect hits MongoDB.** Hot keys should be cached (for example Redis).
+- **No ID design.** `shortid` is random, not unique-indexed, and collisions are not retried.
+- **Unbounded `visitHistory` array.** High-traffic links can hit MongoDB’s 16MB document limit. Clicks belong in a separate events store.
+- **Two local processes.** Production needs a real `PORT`, process manager, and horizontal scale.
+- **No cache, CDN, or edge redirects.**
+- **No rate limiting.**
 
 ### Reliability and correctness
 
-- **`shortId` is not unique in the schema.** Two documents can share the same id; redirects become wrong or flaky.
-- **MongoDB connect has no retry, pool tuning, or fail-fast.** The app listens even if the database is down.
-- **No health/readiness probes, graceful shutdown, or timeouts** on DB/HTTP.
-- **Inconsistent errors.** Mix of JSON and HTML; create can return 500 JSON after a form post.
-- **No idempotency** on create (double-submit → two ids for the same URL).
-- **Redirect does not validate `redirectURL`.** `javascript:`, `data:`, or non-http schemes are open-redirect / XSS vectors.
-- **No tests** (unit, integration, load) and no process manager (`npm start`, PM2, systemd, Kubernetes).
+- **`shortId` is not unique in the schema.**
+- **MongoDB connect has no retry or fail-fast.**
+- **No health/readiness probes, graceful shutdown, or timeouts** on DB/HTTP (`GET /api/health` exists but is basic).
+- **No idempotency** on create.
+- **Redirect does not validate `redirectURL`.** `javascript:` / `data:` schemes are dangerous.
+- **No automated tests.**
 
 ### Security
 
-- **Passwords stored in plaintext**; login is `findOne({ email, password })`. Hash with bcrypt (or similar) before production.
-- **JWT has no expiry**, no rotation, no revocation list (logout only clears the cookie on that browser).
-- **Cookie `uid` is not `httpOnly` / `secure` / `sameSite`.** XSS can steal the session; HTTP can leak it.
-- **No CSRF protection** on POST login, signup, logout, or create.
+- **Passwords stored in plaintext**; login is `findOne({ email, password })`. Hash with bcrypt before production.
+- **JWT has no expiry**, rotation, or revocation list (logout only clears the cookie on that browser).
+- **No CSRF protection.**
 - **No security headers** (Helmet, HSTS, CSP).
-- **No signup email verification, password reset, or lockout.**
-- **Secrets:** `JWT_SECRET_KEY` can be `undefined` if `.env` is missing.
-- **No malware / phishing URL checks** (for example Google Safe Browsing)—table stakes for a public shortener.
-- **No audit log** of who created or changed links.
+- **No email verification, password reset, or lockout.**
+- **No malware / phishing URL checks.**
 
-### Observability and operations
+### Observability
 
-- **No structured logging, metrics, or tracing.** You cannot see p99 redirect latency, error rate, or DB saturation.
-- **No alerting** on MongoDB down, 5xx spikes, or disk/index growth.
-- **No backups / point-in-time recovery** documented or automated.
-- **Click “analytics” are only an in-document array**—no geo, referrer, user-agent, unique vs total, or dashboards.
-- **No config validation at boot** (missing URI/secret should refuse to start).
+- **No structured logging, metrics, or tracing.**
+- **Click “analytics” are only an in-document array**—no geo, referrer, or unique vs total.
 
 ### Highest-impact gaps if shipping tomorrow
 
-1. Public, unauthenticated redirects  
-2. Hashed passwords and cookie flags (`httpOnly`, `secure`, `sameSite`)  
-3. Unique short IDs and collision handling  
-4. Allow only `http`/`https` destinations  
-5. Cache on the redirect path (Redis or similar)  
-6. Clicks as a separate append-only stream (not a growing array)  
-7. Rate limits  
-8. JWT expiry  
-9. Health checks and a real `BASE_URL` / `PORT` from the environment
-
+1. Public, unauthenticated redirects
+2. Hashed passwords
+3. Unique short IDs and collision handling
+4. Allow only `http` / `https` destinations
+5. Cache on the redirect path
+6. Clicks as a separate append-only stream
+7. Rate limits
+8. JWT expiry
+9. Health checks plus `PRODUCTION_BASE_URL` / `PORT` from the environment

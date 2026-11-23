@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Plus, Search, Trash2 } from "lucide-react";
+import { AlertCircle, ExternalLink, Plus, Search, Trash2 } from "lucide-react";
 import { CopyButton } from "@/components/copy-button";
 import { useSession } from "@/components/session-provider";
 import { SiteShell } from "@/components/site-shell";
@@ -165,8 +165,8 @@ export default function LinksPage() {
           ["Total clicks", stats.totalClicks],
           ["Never clicked", stats.neverClicked],
         ].map(([label, value]) => (
-          <Card key={label} className="rounded-2xl">
-            <CardContent className="py-5">
+          <Card key={label}>
+            <CardContent>
               <p className="text-sm text-muted-foreground">{label}</p>
               {loading ? (
                 <Skeleton className="mt-2 h-8 w-12" />
@@ -308,8 +308,9 @@ export default function LinksPage() {
                               <div className="min-w-0">
                                 <p className="truncate">{item.redirectURL}</p>
                                 {valid ? null : (
-                                  <p className="text-xs text-accent">
-                                    Not a valid URL — this link won&apos;t redirect
+                                  <p className="flex items-center gap-0.5 text-xs text-accent">
+                                    <AlertCircle className="size-3" />
+                                    This link is not valid
                                   </p>
                                 )}
                               </div>
